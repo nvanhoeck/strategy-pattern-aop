@@ -1,6 +1,6 @@
 package com.stackoverflowmvce.strategypatternaop;
 
-import com.stackoverflowmvce.strategypatternaop.business.StrategyPattern;
+import com.stackoverflowmvce.strategypatternaop.business.DefaultStrategyPattern;
 import com.stackoverflowmvce.strategypatternaop.exceptions.ProductCompanySelectionClassMissingException;
 import com.stackoverflowmvce.strategypatternaop.model.AuthenticationDetails;
 import com.stackoverflowmvce.strategypatternaop.model.TestObject;
@@ -18,38 +18,35 @@ import static org.assertj.core.api.Assertions.assertThat;
 class StrategyPatternAopApplicationTests {
 
     @Autowired
-    private StrategyPattern baseStrategyPattern;
+    private DefaultStrategyPattern defaultStrategyPattern;
 
     @Test
     void whenDivisionAIP_returnAIPResult() {
-        this.assertDivisionStategyIsOk("AIP");
+        assertDivisionStategyIsOk("AIP");
     }
 
     @Test
     void whenDivisionAIF_returnAIFResult() {
-        this.assertDivisionStategyIsOk("AIF");
+        assertDivisionStategyIsOk("AIF");
     }
 
     @Test
     void whenDivisionAII_notFound_returnException() {
-        Assertions.assertThrows(ProductCompanySelectionClassMissingException.class, () -> {
-            this.assertDivisionStategyIsOk("AII");
-        });
-
+        Assertions.assertThrows(
+            ProductCompanySelectionClassMissingException.class,
+            () -> assertDivisionStategyIsOk("AII")
+        );
     }
 
     private void assertDivisionStategyIsOk(String division) {
         this.setupSecurityContext(division);
-        String strategyResult =
-                this.baseStrategyPattern.executeMethod(new TestObject("test"), 0, "TEST");
+        String strategyResult = defaultStrategyPattern.executeMethod(new TestObject("test"), 0, "TEST");
         assertThat(division).isEqualTo(strategyResult);
-
     }
 
     private void setupSecurityContext(String division) {
         SecurityContext context = SecurityContextHolder.getContext();
-        UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken("oid", null);
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken("oid", null);
         AuthenticationDetails authenticationDetails = new AuthenticationDetails(division);
         authentication.setDetails(authenticationDetails);
         context.setAuthentication(authentication);

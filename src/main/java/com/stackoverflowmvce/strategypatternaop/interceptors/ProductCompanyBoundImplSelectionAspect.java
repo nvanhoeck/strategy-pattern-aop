@@ -1,5 +1,6 @@
 package com.stackoverflowmvce.strategypatternaop.interceptors;
 
+import com.stackoverflowmvce.strategypatternaop.annotations.ProductCompanyImplSelection;
 import com.stackoverflowmvce.strategypatternaop.exceptions.ProductCompanySelectionClassMissingException;
 import com.stackoverflowmvce.strategypatternaop.model.AuthenticationDetails;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +10,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -22,8 +24,12 @@ public class ProductCompanyBoundImplSelectionAspect {
     @Autowired
     private ApplicationContext applicationContext;
 
-    @Around("@annotation(com.stackoverflowmvce.strategypatternaop.annotations.ProductCompanyImplSelection)")
+    @Around("@within(com.stackoverflowmvce.strategypatternaop.annotations.ProductCompanyDefaultImpl)")
     public Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
+        Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
+        if (AnnotationUtils.findAnnotation(method, ProductCompanyImplSelection.class) == null)
+            return joinPoint.proceed();
+
         String productCompany = getDivision();
         Object executionInstance = joinPoint.getTarget();
         String executionClassSimpleName = executionInstance.getClass().getSimpleName();
@@ -32,7 +38,7 @@ public class ProductCompanyBoundImplSelectionAspect {
         Object productCompanyInstance;
         Class<?> productCompanyClass;
         try {
-            String productCompanyBeanName = productCompany + executionClassSimpleName;
+            String productCompanyBeanName = executionClassSimpleName.replaceFirst("^(Default|Base|Standard)", productCompany);
             productCompanyInstance = applicationContext.getBean(productCompanyBeanName);
             productCompanyClass = productCompanyInstance.getClass();
         }
@@ -44,7 +50,6 @@ public class ProductCompanyBoundImplSelectionAspect {
         }
 
         // Invoke strategy method
-        Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
         return productCompanyClass
             .getMethod(method.getName(), method.getParameterTypes())
             .invoke(productCompanyInstance, joinPoint.getArgs());
