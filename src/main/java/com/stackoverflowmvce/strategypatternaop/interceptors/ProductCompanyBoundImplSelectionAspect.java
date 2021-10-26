@@ -24,15 +24,18 @@ public class ProductCompanyBoundImplSelectionAspect {
     @Autowired
     private ApplicationContext applicationContext;
 
-    @Around("@within(com.stackoverflowmvce.strategypatternaop.annotations.ProductCompanyDefaultImpl)")
+    @Around("within(com.stackoverflowmvce.strategypatternaop..*)")
     public Object aroundAdvice(ProceedingJoinPoint joinPoint) throws Throwable {
         Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
         if (AnnotationUtils.findAnnotation(method, ProductCompanyImplSelection.class) == null)
             return joinPoint.proceed();
 
-        String productCompany = getDivision();
         Object executionInstance = joinPoint.getTarget();
         String executionClassSimpleName = executionInstance.getClass().getSimpleName();
+        if (!executionClassSimpleName.matches("^(Default|Base|Standard).*"))
+            return joinPoint.proceed();
+
+        String productCompany = getDivision();
 
         // Determine strategy class
         Object productCompanyInstance;
